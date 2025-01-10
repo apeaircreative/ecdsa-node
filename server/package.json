@@ -3,17 +3,19 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
- "scripts": {
+  "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "npx ts-node src/scripts/tests/index.ts"
+    "test": "npx ts-node src/scripts/tests/index.ts",
+    "generate-keys": "ts-node src/scripts/generate-keys.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
     "dotenv": "^16.4.7",
     "ethereum-cryptography": "^3.0.0",
     "ethers": "^6.13.5",
@@ -22,6 +24,7 @@
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
+    "@types/crypto-js": "^4.2.2",
     "@types/dotenv": "^8.2.3",
     "@types/express": "^4.17.21",
     "@types/morgan": "^1.9.9",

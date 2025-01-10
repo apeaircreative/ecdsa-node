@@ -6,9 +6,10 @@ import logger from '../utils/logger';
 const router = express.Router();
 
 // Create a new wallet
-router.post('/wallet', (req, res, next) => {
+router.post('/wallet', async (req, res, next) => {
   try {
-    const wallet = WalletService.createWallet();
+    const walletService = new WalletService();
+    const wallet = await walletService.createWallet();
     // Never send private key in production!
     // Only for demonstration purposes
     res.status(201).json({
@@ -43,7 +44,7 @@ router.post('/send', (req, res, next) => {
     const success = WalletService.sendAmount(
       sender,
       recipient,
-      Number(amount),
+      String(amount),
       signature
     );
 

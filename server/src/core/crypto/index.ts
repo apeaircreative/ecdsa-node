@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { Wallet, verifyMessage } from 'ethers';
 import { CryptoError } from '../errors';
 import logger from '../../utils/logger';
 
@@ -9,7 +9,7 @@ export class CryptoService {
    */
   static generateKeyPair() {
     try {
-      const wallet = ethers.Wallet.createRandom();
+      const wallet = Wallet.createRandom();
       return {
         privateKey: wallet.privateKey,
         publicKey: wallet.publicKey,
@@ -26,7 +26,7 @@ export class CryptoService {
    */
   static async signMessage(message: string, privateKey: string): Promise<string> {
     try {
-      const wallet = new ethers.Wallet(privateKey);
+      const wallet = new Wallet(privateKey);
       return await wallet.signMessage(message);
     } catch (error) {
       logger.error('Failed to sign message:', error);
@@ -39,7 +39,8 @@ export class CryptoService {
    */
   static verifyMessage(message: string, signature: string): string {
     try {
-      return ethers.verifyMessage(message, signature);
+      const address = verifyMessage(message, signature);
+      return address;
     } catch (error) {
       logger.error('Failed to verify message:', error);
       throw new CryptoError('Failed to verify message');

@@ -10,6 +10,7 @@ const configSchema = z.object({
   chainId: z.number().default(1337), // Local testnet
   blockTime: z.number().default(12000), // 12 seconds like Ethereum
   maxGasLimit: z.number().default(30000000),
+  encryptionKey: z.string().min(32, 'Encryption key must be at least 32 characters')
 });
 
 // Type inference
@@ -22,6 +23,7 @@ export const config: Config = configSchema.parse({
   chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : undefined,
   blockTime: process.env.BLOCK_TIME ? parseInt(process.env.BLOCK_TIME) : undefined,
   maxGasLimit: process.env.MAX_GAS_LIMIT ? parseInt(process.env.MAX_GAS_LIMIT) : undefined,
+  encryptionKey: process.env.ENCRYPTION_KEY
 });
 
 // Freeze config object to prevent runtime modifications

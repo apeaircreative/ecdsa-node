@@ -1,0 +1,22 @@
+# Project requirements
+## PROJECT_REQUIREMENTS.md
+## PROJECT_THESIS.md
+
+# Dependencies
+node_modules/
+.env
+
+# Build
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
