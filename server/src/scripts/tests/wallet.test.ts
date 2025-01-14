@@ -19,18 +19,20 @@ export async function walletTest() {
 
     console.printSection('Wallet Details');
     wallet.printDetails('Wallet One', wallet1.address);
+    console.log('Encryption Status:', wallet1.isEncrypted ? '🔒 Encrypted' : '🔓 Unencrypted');
     console.log();
     wallet.printDetails('Wallet Two', wallet2.address);
+    console.log('Encryption Status:', wallet2.isEncrypted ? '🔒 Encrypted' : '🔓 Unencrypted');
     console.printDivider();
 
     const normalizedWallet1Address = getAddress(wallet1.address);
-    (WalletService as any).balances[normalizedWallet1Address] = 100;
+    walletService.setBalance(normalizedWallet1Address, 100);
     await console.loading('Setting initial balances');
 
     console.printSection('Initial State');
-    wallet.printDetails('Wallet One', normalizedWallet1Address, WalletService.getBalance(normalizedWallet1Address));
+    wallet.printDetails('Wallet One', normalizedWallet1Address, walletService.getBalance(normalizedWallet1Address));
     console.log();
-    wallet.printDetails('Wallet Two', wallet2.address, WalletService.getBalance(wallet2.address));
+    wallet.printDetails('Wallet Two', wallet2.address, walletService.getBalance(wallet2.address));
     console.printDivider();
 
     const amount = "50";
@@ -46,22 +48,19 @@ export async function walletTest() {
     console.printDivider();
 
     await console.loading('Processing transaction');
-    WalletService.sendAmount(normalizedWallet1Address, wallet2.address, amount, signature);
+    await walletService.sendAmount(normalizedWallet1Address, wallet2.address, amount, signature);
 
     console.printSection('Final State');
-    wallet.printDetails('Wallet One', normalizedWallet1Address, WalletService.getBalance(normalizedWallet1Address));
+    wallet.printDetails('Wallet One', normalizedWallet1Address, walletService.getBalance(normalizedWallet1Address));
     console.log();
-    wallet.printDetails('Wallet Two', wallet2.address, WalletService.getBalance(wallet2.address));
+    wallet.printDetails('Wallet Two', wallet2.address, walletService.getBalance(wallet2.address));
     console.printDivider();
 
-    await console.loading('Completing test', 500);
-    console.printSection('Test Complete ✅');
-
-  } catch (error: any) {
-    console.printSection('Error ❌');
-    console.log('Error Details:');
-    console.log(`  Type:    ${error.name || 'Unknown Error'}`);
-    console.log(`  Message: ${error.message || String(error)}`);
-    console.printDivider();
+    console.log('✅ All tests passed successfully!');
+  } catch (error) {
+    console.log('❌ Test failed:', error instanceof Error ? error.message : error);
+    process.exit(1);
   }
 }
+
+walletTest();

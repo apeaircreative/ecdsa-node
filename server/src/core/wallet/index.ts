@@ -1,28 +1,38 @@
+// src/core/wallet/index.ts
 import { CryptoService } from '../crypto';
 import { EncryptionService } from '../encryption';
-import { WalletError } from '../errors';
+import { WalletError, EncryptionError } from '../errors';
 import logger from '../../utils/logger';
-import { Wallet } from '../wallet/types';
+import { Wallet, DecryptedWallet } from './types';
 import { parseUnits, getAddress } from 'ethers';
 
+/**
+ * Service for managing Ethereum-compatible wallets with encrypted storage.
+ */
 export class WalletService {
-  private static balances: Record<string, number> = {};
+  private balances: Record<string, number> = {};
 
   /**
-   * Create a new wallet
-   * @returns {Promise<Wallet>} The created wallet object
+   * Creates a new wallet with encrypted private key storage.
+   * @returns A new wallet instance with encrypted private key
+   * @throws {WalletError} If wallet creation fails
+   * @throws {EncryptionError} If key encryption fails
    */
   async createWallet(): Promise<Wallet> {
     try {
+      // Generate new key pair
       const { privateKey, publicKey, address } = CryptoService.generateKeyPair();
-
-      // Encrypt the private key for secure storage
+      
+      // Always encrypt the private key
       const encryptedPrivateKey = await EncryptionService.encryptPrivateKey(privateKey);
 
-      // Create the wallet object
-      const wallet: Wallet = { address, publicKey, privateKey: encryptedPrivateKey };
-
-      // Logic to save the wallet (e.g., to a database) should be implemented here
+      // Create wallet with encrypted key
+      const wallet: Wallet = {
+        address,
+        publicKey,
+        privateKey: encryptedPrivateKey,
+        isEncrypted: true  // Always true since we always encrypt
+      };
 
       return wallet;
     } catch (error) {
@@ -32,47 +42,78 @@ export class WalletService {
   }
 
   /**
-   * Get wallet balance
-   * @param address - The wallet address
-   * @returns {number} The balance of the wallet
+   * Gets a decrypted wallet instance for signing operations.
+   * @internal
+   * @param wallet - The encrypted wallet
+   * @returns Wallet with decrypted private key
+   * @throws {EncryptionError} If decryption fails
    */
-  static getBalance(address: string): number {
+  private async getDecryptedWallet(wallet: Wallet): Promise<DecryptedWallet> {
+    try {
+      const decryptedKey = await EncryptionService.decryptPrivateKey(wallet.privateKey);
+      
+      return {
+        ...wallet,
+        privateKey: decryptedKey,
+      };
+    } catch (error) {
+      logger.error('Failed to decrypt wallet:', error);
+      throw new EncryptionError('Failed to decrypt wallet for signing');
+    }
+  }
+
+  /**
+   * Gets the balance of a wallet address
+   * @param address - The wallet address to check
+   * @returns The balance of the wallet
+   */
+  getBalance(address: string): number {
     const normalizedAddress = getAddress(address);
     return this.balances[normalizedAddress] || 0;
   }
 
   /**
-   * Send amount from one address to another
+   * Sets the balance of a wallet (for testing purposes)
+   * @param address - The wallet address
+   * @param amount - The amount to set
+   */
+  setBalance(address: string, amount: number): void {
+    const normalizedAddress = getAddress(address);
+    this.balances[normalizedAddress] = amount;
+  }
+
+  /**
+   * Sends an amount from one address to another
    * @param sender - The sender's address
    * @param recipient - The recipient's address
    * @param amount - The amount to send
    * @param signature - The transaction signature
-   * @returns {boolean} Success status of the transaction
+   * @returns Success status of the transaction
    */
-  static sendAmount(
+  async sendAmount(
     sender: string,
     recipient: string,
     amount: string,
     signature: string
-  ): boolean {
+  ): Promise<boolean> {
     try {
       const normalizedSender = getAddress(sender);
       const normalizedRecipient = getAddress(recipient);
-      const amountInWei = parseUnits(amount, 'ether');
+      const amountValue = Number(amount);
 
-      if (this.balances[normalizedSender] < Number(amountInWei)) {
+      if (this.balances[normalizedSender] < amountValue) {
         throw new WalletError('Insufficient funds');
       }
 
-      const message = `\x19Ethereum Signed Message:\n${normalizedSender.length}${normalizedSender}${normalizedRecipient}${amountInWei.toString()}`;
+      const message = `\x19Ethereum Signed Message:\n${normalizedSender.length}${normalizedSender}${normalizedRecipient}${amount}`;
       const recoveredAddress = CryptoService.verifyMessage(message, signature);
 
       if (recoveredAddress.toLowerCase() !== normalizedSender.toLowerCase()) {
         throw new WalletError('Invalid signature');
       }
 
-      this.balances[normalizedSender] -= Number(amountInWei);
-      this.balances[normalizedRecipient] = (this.balances[normalizedRecipient] || 0) + Number(amountInWei);
+      this.balances[normalizedSender] -= amountValue;
+      this.balances[normalizedRecipient] = (this.balances[normalizedRecipient] || 0) + amountValue;
 
       return true;
     } catch (error) {
